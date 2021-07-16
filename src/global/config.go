@@ -22,8 +22,12 @@ var Config struct {
 	Debug bool `toml:"-"`
 
 	Service struct {
+		Upstream struct {
+			Count     int      `toml:"-"`
+			Addrs     []string `toml:"addrs"`
+			HTTPProxy string   `toml:"httpProxy"`
+		} `toml:"upstream"`
 		HTTPS struct {
-			Auth     string `toml:"auth"`
 			Port     uint16 `toml:"port"`
 			CertFile string `toml:"certFile"`
 			KeyFile  string `toml:"keyFile"`
@@ -33,19 +37,13 @@ var Config struct {
 			CertFile string `toml:"certFile"`
 			KeyFile  string `toml:"keyFile"`
 		} `toml:"tls"`
-		HTTP struct {
-			Auth string `toml:"auth"`
+		DomainSuffix    []string `toml:"domainSuffix"`
+		IP              string   `toml:"ip"`
+		QuitWaitTimeout uint     `toml:"quitWaitTimeout"`
+		HTTP            struct {
 			Port uint16 `toml:"port"`
 		} `toml:"http"`
-		DomainSuffix []string `toml:"domainSuffix"`
-		Upstream     struct {
-			Count     int      `toml:"-"`
-			Addrs     []string `toml:"addrs"`
-			HTTPProxy string   `toml:"httpProxy"`
-		} `toml:"upstream"`
-		IP              string `toml:"ip"`
-		QuitWaitTimeout uint   `toml:"quitWaitTimeout"`
-		UDP             struct {
+		UDP struct {
 			Port uint16 `toml:"port"`
 		} `toml:"udp"`
 		TCP struct {

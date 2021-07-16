@@ -4,7 +4,7 @@
 ip=""
 
 # 要内部解析的域名后缀，例如*.uam则填写uam
-domainSuffix = [".uam.", ".vesystem."]
+domainSuffix = [".test."]
 
 # 退出等待时间
 quitWaitTimeout=5
@@ -15,10 +15,10 @@ quitWaitTimeout=5
 # tcp://1.1.1.1:53
 # tls://1.1.1.1:853
 # https://1.1.1.1/dns-query
-upstream.addrs=["udp://202.103.24.68:53","tls://223.5.5.5:853", "https://223.5.5.5/dns-query", "udp://223.5.5.5:53", "tcp://223.5.5.5:53"]
+upstream.addrs=["udp://1.1.1.1:53", "tcp://1.1.1.1:53", "tls://1.1.1.1:853", "https://1.1.1.1/dns-query"]
 
 # 向上游DNS over HTTP/HTTPS服务查询时使用的HTTP代理地址
-# 目前仅支持向上游HTTP/HTTPS服务发起查询时使用代理，且只能使用HTTP代理
+# 目前仅支持向上游HoT服务发起查询时使用代理，且只能使用HTTP代理
 upstream.httpProxy=""
 
 # DNS over UDP服务的端口，如果为0则不启用该服务
@@ -39,14 +39,8 @@ tls.keyFile="./server.key"
 # DNS over HTTP服务的端口，默认80端口，如果为0则不启用该服务
 http.port=80
 
-# DNS over HTTP查询密码，header的Authorization参数值，留空则不需要密码
-http.auth="123456"
-
 # DNS over HTTPS服务的端口，默认443端口，留空则不启用该服务
 https.port=443
-
-# DNS over HTTPS查询密码，header的Authorization参数值，留空则不需要密码
-https.auth=""
 
 # DNS over HTTPS服务的证书文件(cert)路径，不启用该服务时可以留空
 https.certFile="./server.pem"
@@ -71,7 +65,7 @@ https.keyFile="./server.key"
 type="voltdb"
 config="""
 {
-  "addr": "192.168.51.212:21212",
+  "addr": "127.0.0.1:21212",
   "database": "domain",
   "useTTL": false
 }
