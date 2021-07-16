@@ -1,0 +1,139 @@
+# before_script:
+
+# after_script:
+
+# 阶段
+stages:
+  - test
+  - build
+  - stop
+  - deploy
+
+# 自定义变量
+variables:
+  # 项目名称
+#  ProjectName: "uam"
+  # 进程名(编译出来后的文件名)
+  ProcessName: "dns-service"
+  # 部署路径
+  DeployPath: "/data/$ProcessName"
+
+# 测试任务
+test-job:
+  # 阶段名称
+  stage: test
+  # 仅针对master触发
+  only:
+    - master
+  # 仅针对tag为dev的runner触发
+  tags:
+    - dev
+  # 环境变量
+  environment:
+    name: dev
+  # 任务脚本
+  script:
+    - cd src
+    # 下载依赖包至gitlab-runner所在的服务器
+    - go mod tidy
+    # 执行代码质量检查
+    - golangci-lint run -c=../.golangci.yml
+
+# 编译任务
+build-job:
+  # 阶段名称
+  stage: build
+  # 仅针对master触发
+  only:
+    - master
+  # 仅针对tag为dev的runner触发
+  tags:
+    - dev
+  # 环境变量
+  environment:
+    name: dev
+  # 使用缓存
+  cache:
+    # 缓存目录
+    paths:
+      - build/
+  # 任务脚本
+  script:
+    - mkdir -p build
+    - cd src
+    - go mod tidy
+    # 使用vendor模式编译，省去下载依赖包的过程
+    # - go build -mod=vendor -o "$BuildPath/$ProcessName-$CI_PIPELINE_ID" -trimpath
+    # - go build -o "$BuildPath/$ProcessName-$CI_PIPELINE_ID" -trimpath
+    - go build -o "../build/$ProcessName" -trimpath
+    - ls
+
+# 停止旧服务的任务
+stop-job:
+  # 阶段名称
+  stage: stop
+  # 仅针对master触发
+  only:
+    - master
+  # 仅针对tag为dev的runner触发
+  tags:
+    - dev
+  # 环境变量
+  environment:
+    name: dev
+  # 任务脚本
+  script:
+    - systemctl stop "$ProcessName"
+    - systemctl disable "$ProcessName"
+  # 允许失败，防止服务不存在时中断后续部署任务
+  allow_failure: true
+
+# 部署任务
+deploy-job:
+  # 阶段名称
+  stage: deploy
+  # 仅针对master触发
+  only:
+    - master
+  # 仅针对tag为dev的runner触发
+  tags:
+    - dev
+  # 环境变量
+  environment:
+    name: dev
+  # 依赖编译阶段，否则编译出来的文件无法读取
+  dependencies:
+    - build-job
+  # 使用缓存
+  cache:
+    # 缓存目录
+    paths:
+      - build/
+    policy: pull
+  # 任务脚本
+  script:
+    - echo "ProcessName:$ProcessName"
+    - echo "WorkDir:$DeployPath"
+    - echo "Env:$CI_ENVIRONMENT_NAME"
+    - ls
+    # 检查编译后的文件是否存在
+    - ls -lsh "build/$ProcessName"
+    # 创建部署路径
+    - mkdir -p "$DeployPath"
+    # 替换执行文件
+    - mv -f "build/$ProcessName" "$DeployPath/$ProcessName"
+    # 替换配置文件
+    - cp -f "config.toml" "$DeployPath/config.toml"
+    # 修改systemd配置文件中的占位符
+    - sed -i "s/\[{ProcessName}\]/$ProcessName/g" systemd.service
+    - sed -i "s#\[{WorkDir}\]#$DeployPath#g" systemd.service
+#    - sed -i "s/\[{Env}\]/$CI_ENVIRONMENT_NAME/g" systemd.service
+    - cat systemd.service
+    # 替换systemd配置文件
+    - cp -f "systemd.service" "/usr/lib/systemd/system/$ProcessName.service"
+    # 重载服务单元文件
+    - systemctl daemon-reload
+    # 启用服务
+    - systemctl enable "$ProcessName"
+    # 启动服务
+    - systemctl start "$ProcessName"

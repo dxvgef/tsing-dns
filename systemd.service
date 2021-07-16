@@ -1,0 +1,11 @@
+[Unit]
+Description=dns-service
+After=network.target
+
+[Service]
+WorkingDirectory=/data/dns-service
+ExecStart=/data/dns-service/dns-service
+ExecStop=pkill dns-service
+
+[Install]
+WantedBy=multi-user.target

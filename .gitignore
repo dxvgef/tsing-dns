@@ -1,0 +1,12 @@
+.idea
+/bin
+/output
+*.iml
+.DS_Store
+*.test
+.vscode
+.history
+*.log
+*.bak
+go.sum
+/config.local.toml

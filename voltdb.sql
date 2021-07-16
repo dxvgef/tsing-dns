@@ -1,0 +1,7 @@
+CREATE TABLE domain (
+    id VARCHAR(20) UNIQUE NOT NULL PRIMARY KEY,
+    rr_name VARCHAR(255) NOT NULL,
+    rr_type TINYINT NOT NULL,
+    rr_ttl INTEGER NOT NULL,
+    rr_data VARCHAR(255) NOT NULL
+);

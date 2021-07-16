@@ -1,0 +1,97 @@
+# DNS服务
+[service]
+# 监听IP，留空则监听所有地址
+ip=""
+
+# 要内部解析的域名后缀，例如*.uam则填写uam
+domainSuffix = [".uam.", ".vesystem."]
+
+# 退出等待时间
+quitWaitTimeout=5
+
+# 启用DNS代理时，上游DNS服务地址
+# 支持的DNS格式示例如下：
+# udp://1.1.1.1:53
+# tcp://1.1.1.1:53
+# tls://1.1.1.1:853
+# https://1.1.1.1/dns-query
+upstream.addrs=["udp://202.103.24.68:53","tls://223.5.5.5:853", "https://223.5.5.5/dns-query", "udp://223.5.5.5:53", "tcp://223.5.5.5:53"]
+
+# 向上游DNS over HTTP/HTTPS服务查询时使用的HTTP代理地址
+# 目前仅支持向上游HTTP/HTTPS服务发起查询时使用代理，且只能使用HTTP代理
+upstream.httpProxy=""
+
+# DNS over UDP服务的端口，如果为0则不启用该服务
+udp.port=53
+
+# DNS over TCP服务的端口，默认53端口，如果为0则不启用该服务
+tcp.port=53
+
+# DNS over TLS服务的端口，默认853端口，如果为0则不启用该服务
+tls.port=853
+
+# DNS over TLS服务的cert文件地址，不启用该服务时可以留空
+tls.certFile="./server.pem"
+
+# DNS over TLS服务的key文件地址，不启用该服务时可以留空
+tls.keyFile="./server.key"
+
+# DNS over HTTP服务的端口，默认80端口，如果为0则不启用该服务
+http.port=80
+
+# DNS over HTTP查询密码，header的Authorization参数值，留空则不需要密码
+http.auth="123456"
+
+# DNS over HTTPS服务的端口，默认443端口，留空则不启用该服务
+https.port=443
+
+# DNS over HTTPS查询密码，header的Authorization参数值，留空则不需要密码
+https.auth=""
+
+# DNS over HTTPS服务的证书文件(cert)路径，不启用该服务时可以留空
+https.certFile="./server.pem"
+
+# DNS over HTTPS服务的私钥文件(key)路径，不启用该服务时可以留空
+https.keyFile="./server.key"
+
+[storage]
+# redis的配置示例
+#type="redis"
+#config="""
+#{
+#  "addr": "192.168.51.212:6379",
+#  "database": 1,
+#  "password": "123456",
+#  "prefix": "dns:",
+#  "useTTL": false
+#}
+#"""
+
+# voltdb的配置示例
+type="voltdb"
+config="""
+{
+  "addr": "192.168.51.212:21212",
+  "database": "domain",
+  "useTTL": false
+}
+"""
+
+[logger]
+# 记录级别: debug(默认)/info/warn/error
+level="debug"
+
+# 日志输出，填写日志文件的存储路径，如果留空则输出到控制台
+output=""
+
+# 日志时间格式，默认：y年-m月-d日 h时:i分:s秒
+# timeFormat="y-m-d h:i:s"
+
+# 日志编码：console默认/json
+# encode="console"
+
+# 在控制台输出时不使用颜色，仅当
+# noColor=false
+
+# 日志文件的权限，默认：0600
+# fileMode=0600
