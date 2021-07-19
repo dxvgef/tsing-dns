@@ -52,10 +52,10 @@ func MakeStorage() (err error) {
 // 		rr  dns.RR
 // 	)
 // 	a.Hdr.Ttl = 3600
-// 	a.Hdr.Name = "test.uam"
+// 	a.Hdr.Name = "dns.tsing.dxvgef"
 // 	a.Hdr.Rrtype = dns.TypeA
 // 	a.Hdr.Class = dns.ClassINET
-// 	a.A = net.ParseIP("192.168.51.159")
+// 	a.A = net.ParseIP("127.0.0.1")
 // 	rr, err = dns.NewRR(a.String())
 // 	if err != nil {
 // 		log.Fatal().Caller().Err(err).Msg("生成测试数据失败")

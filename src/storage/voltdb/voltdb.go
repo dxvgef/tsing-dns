@@ -33,7 +33,11 @@ func New(config *Config) (*VoltDB, error) {
 		err  error
 	)
 	inst.config = config
-	inst.cli, err = sql.Open("voltdb", "voltdb://"+config.Addr)
+	if config.Username != "" {
+		inst.cli, err = sql.Open("voltdb", "voltdb://"+config.Username+":"+config.Password+"@"+config.Addr)
+	} else {
+		inst.cli, err = sql.Open("voltdb", "voltdb://"+config.Addr)
+	}
 	if err != nil {
 		return nil, err
 	}
