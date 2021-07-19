@@ -24,6 +24,7 @@ type Config struct {
 	Database string `json:"database"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Timeout  uint16 `json:"timeout,omitempty"`
 	UseTTL   bool   `json:"useTTL,omitempty"`
 }
 
@@ -33,18 +34,14 @@ func New(config *Config) (*VoltDB, error) {
 		err  error
 	)
 	inst.config = config
+	if inst.config.Timeout == 0 {
+		inst.config.Timeout = 5
+	}
 	if config.Username != "" {
 		inst.cli, err = sql.Open("voltdb", "voltdb://"+config.Username+":"+config.Password+"@"+config.Addr)
 	} else {
 		inst.cli, err = sql.Open("voltdb", "voltdb://"+config.Addr)
 	}
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	err = inst.cli.PingContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +62,8 @@ func NewWithJSON(jsonStr string) (*VoltDB, error) {
 	return New(&config)
 }
 
-func (inst *VoltDB) Set(rr dns.RR, ttl uint32) (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (inst *VoltDB) Set(rr dns.RR) (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(inst.config.Timeout)*time.Second)
 	defer cancel()
 	id := xid.New().String()
 	name := strings.TrimSuffix(rr.Header().Name, ".")
@@ -82,7 +79,7 @@ func (inst *VoltDB) Get(question dns.Question) ([]dns.RR, error) {
 		rows   *sql.Rows
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(inst.config.Timeout)*time.Second)
 	defer cancel()
 	name := strings.TrimSuffix(question.Name, ".")
 
@@ -116,7 +113,7 @@ func (inst *VoltDB) Get(question dns.Question) ([]dns.RR, error) {
 }
 
 func (inst *VoltDB) Del(rr dns.RR) (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(inst.config.Timeout)*time.Second)
 	defer cancel()
 	name := strings.TrimSuffix(rr.Header().Name, ".")
 	_, err = inst.cli.ExecContext(ctx, "@AdHoc", "DELETE FROM domain WHERE rr_name=? AND rr_type=?", name, dns.TypeToString[rr.Header().Rrtype])

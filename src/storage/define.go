@@ -14,7 +14,7 @@ var Storage Interface
 
 // 存储器接口
 type Interface interface {
-	Set(rr dns.RR, ttl uint32) (err error)
+	Set(rr dns.RR) (err error)
 	Get(question dns.Question) (result []dns.RR, err error)
 	Del(rr dns.RR) (err error)
 }
@@ -52,7 +52,7 @@ func MakeStorage() (err error) {
 // 		rr  dns.RR
 // 	)
 // 	a.Hdr.Ttl = 3600
-// 	a.Hdr.Name = "dns.tsing.dxvgef"
+// 	a.Hdr.Name = "test.dns.tsing"
 // 	a.Hdr.Rrtype = dns.TypeA
 // 	a.Hdr.Class = dns.ClassINET
 // 	a.A = net.ParseIP("127.0.0.1")
@@ -60,7 +60,7 @@ func MakeStorage() (err error) {
 // 	if err != nil {
 // 		log.Fatal().Caller().Err(err).Msg("生成测试数据失败")
 // 	}
-// 	err = sa.Set(rr, 3600)
+// 	err = Storage.Set(rr, 3600)
 // 	if err != nil {
 // 		log.Fatal().Caller().Err(err).Msg("写入测试数据失败")
 // 	}

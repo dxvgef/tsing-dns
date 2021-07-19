@@ -23,12 +23,16 @@ type Config struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 	Prefix   string `json:"prefix,omitempty"`
+	Timeout  uint16 `json:"timeout,omitempty"`
 	UseTTL   bool   `json:"useTTL,omitempty"`
 }
 
 func New(config *Config) (*Redis, error) {
 	var inst Redis
 	inst.config = config
+	if inst.config.Timeout == 0 {
+		inst.config.Timeout = 5
+	}
 	inst.cli = redis.NewClient(&redis.Options{
 		Addr:     config.Addr,
 		Username: config.Username,
@@ -50,13 +54,14 @@ func NewWithJSON(jsonStr string) (*Redis, error) {
 	return New(&config)
 }
 
-func (inst *Redis) Set(rr dns.RR, ttl uint32) (err error) {
+func (inst *Redis) Set(rr dns.RR) (err error) {
 	var (
 		name    string
 		key     string
 		keySign string
+		expires time.Duration
 	)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(inst.config.Timeout*2)*time.Second)
 	defer cancel()
 
 	name = strings.TrimSuffix(rr.Header().Name, ".")
@@ -64,8 +69,11 @@ func (inst *Redis) Set(rr dns.RR, ttl uint32) (err error) {
 	if err != nil {
 		return
 	}
+	if inst.config.UseTTL {
+		expires = time.Duration(rr.Header().Ttl) * time.Second
+	}
 	key = inst.config.Prefix + name + ":" + dns.TypeToString[rr.Header().Rrtype] + ":" + keySign
-	err = inst.cli.Set(ctx, key, rr.String(), time.Duration(ttl)*time.Second).Err()
+	err = inst.cli.Set(ctx, key, rr.String(), expires).Err()
 	return
 }
 
@@ -77,7 +85,7 @@ func (inst *Redis) Get(question dns.Question) ([]dns.RR, error) {
 		rr     dns.RR
 		keys   []string
 	)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(inst.config.Timeout)*time.Second)
 	defer cancel()
 	name := strings.TrimSuffix(question.Name, ".")
 	key := inst.config.Prefix + name + ":" + dns.TypeToString[question.Qtype] + ":*"
@@ -103,7 +111,7 @@ func (inst *Redis) Get(question dns.Question) ([]dns.RR, error) {
 }
 
 func (inst *Redis) Del(rr dns.RR) (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(inst.config.Timeout)*time.Second)
 	defer cancel()
 	name := strings.TrimSuffix(rr.Header().Name, ".")
 	key := inst.config.Prefix + name + ":" + dns.TypeToString[rr.Header().Rrtype]
