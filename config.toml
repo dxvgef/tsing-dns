@@ -61,7 +61,6 @@ config="""
   "useTTL": false
 }
 """
-
 # voltdb的配置示例
 #type="voltdb"
 #config="""
