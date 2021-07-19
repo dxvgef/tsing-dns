@@ -37,7 +37,7 @@ var Config struct {
 			CertFile string `toml:"certFile"`
 			KeyFile  string `toml:"keyFile"`
 		} `toml:"tls"`
-		DomainSuffix    []string `toml:"domainSuffix"`
+		InternalSuffix  []string `toml:"internalSuffix"`
 		IP              string   `toml:"ip"`
 		QuitWaitTimeout uint     `toml:"quitWaitTimeout"`
 		HTTP            struct {

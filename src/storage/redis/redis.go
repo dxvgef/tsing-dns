@@ -52,21 +52,20 @@ func NewWithJSON(jsonStr string) (*Redis, error) {
 
 func (inst *Redis) Set(rr dns.RR, ttl uint32) (err error) {
 	var (
-		name string
-		key  string
-		t    time.Duration
+		name    string
+		key     string
+		keySign string
 	)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	name = strings.TrimSuffix(rr.Header().Name, ".")
-	key = inst.config.Prefix + name + ":" + dns.TypeToString[rr.Header().Rrtype]
-
-	if inst.config.UseTTL {
-		t = time.Duration(ttl) * time.Second
+	keySign, err = global.KeySign(rr)
+	if err != nil {
+		return
 	}
-
-	err = inst.cli.HSet(ctx, key, rr.String(), t).Err()
+	key = inst.config.Prefix + name + ":" + dns.TypeToString[rr.Header().Rrtype] + ":" + keySign
+	err = inst.cli.Set(ctx, key, rr.String(), time.Duration(ttl)*time.Second).Err()
 	return
 }
 
@@ -76,23 +75,30 @@ func (inst *Redis) Get(question dns.Question) ([]dns.RR, error) {
 		data   string
 		result []dns.RR
 		rr     dns.RR
+		keys   []string
 	)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	name := strings.TrimSuffix(question.Name, ".")
-	key := inst.config.Prefix + name + ":" + dns.TypeToString[question.Qtype]
+	key := inst.config.Prefix + name + ":" + dns.TypeToString[question.Qtype] + ":*"
 
-	data, err = inst.cli.HGet(ctx, key, "rr_data").Result()
+	keys, err = inst.cli.Keys(ctx, key).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	rr, err = dns.NewRR(data)
-	if err != nil {
-		return nil, err
+	for k := range keys {
+		data, err = inst.cli.Get(ctx, keys[k]).Result()
+		if err != nil {
+			return nil, err
+		}
+		rr, err = dns.NewRR(data)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, rr)
 	}
-	result = append(result, rr)
+
 	return result, nil
 }
 

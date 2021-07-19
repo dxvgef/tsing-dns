@@ -11,39 +11,10 @@ import (
 
 	"local/global"
 	"local/storage"
-	"local/storage/redis"
-	"local/storage/voltdb"
 
 	"github.com/miekg/dns"
 	"github.com/rs/zerolog/log"
 )
-
-// 存储器
-var sa storage.Interface
-
-// 构建存储器实例
-func makeStorage() (err error) {
-	// 初始化存储器
-	switch global.Config.Storage.Type {
-	case "redis":
-		sa, err = redis.NewWithJSON(global.Config.Storage.Config)
-		if err != nil {
-			log.Fatal().Err(err).Caller().Msg("初始化存储器失败")
-			break
-		}
-		log.Info().Str("type", "redis").Msg("使用Redis存储引擎")
-	case "voltdb":
-		sa, err = voltdb.NewWithJSON(global.Config.Storage.Config)
-		if err != nil {
-			log.Fatal().Err(err).Caller().Msg("初始化存储器失败")
-			break
-		}
-		log.Info().Str("type", "voltdb").Msg("使用VoltDB存储引擎")
-	default:
-		log.Fatal().Caller().Str("type", global.Config.Storage.Type).Msg("未知的存储器类型")
-	}
-	return
-}
 
 // 启动socket服务
 func Start() {
@@ -58,9 +29,8 @@ func Start() {
 		httpHandler   = new(HTTPHandler)
 	)
 
-	err = makeStorage()
-	if err != nil {
-		log.Fatal().Caller().Msg("存储器构建失败")
+	if storage.Storage == nil {
+		log.Fatal().Caller().Msg("存储器未构建")
 		return
 	}
 

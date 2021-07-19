@@ -92,7 +92,7 @@ func (hh *HTTPHandler) dnsQueryByGET() {
 	}
 
 	// 查询内部域的记录
-	if strings.HasSuffix(reqMsg.Question[0].Name, ".uam.") {
+	if global.IsInternal(reqMsg.Question[0].Name) {
 		respMsg, err = queryStorage(&reqMsg)
 		if err != nil {
 			log.Err(err).Caller().Send()
@@ -161,7 +161,7 @@ func (hh *HTTPHandler) dnsQueryByPOST() {
 	}
 
 	// 查询内部域的记录
-	if strings.HasSuffix(reqMsg.Question[0].Name, ".uam.") {
+	if global.IsInternal(reqMsg.Question[0].Name) {
 		respMsg, err = queryStorage(&reqMsg)
 		if err != nil {
 			log.Err(err).Caller().Msg("查询存储器失败")
@@ -223,7 +223,7 @@ func (hh *HTTPHandler) jsonHandler() {
 		reqMsg.Question[0].Name += "."
 	}
 
-	if strings.HasSuffix(reqMsg.Question[0].Name, ".uam.") {
+	if global.IsInternal(reqMsg.Question[0].Name) {
 		respMsg, err = queryStorage(reqMsg)
 		if err != nil {
 			log.Err(err).Caller().Msg("查询存储器失败")

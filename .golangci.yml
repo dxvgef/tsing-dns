@@ -150,6 +150,9 @@ issues:
     - linters:
         - gosec
       text: "G103:"
+    - linters:
+        - gosec
+      text: "G401:"
 
     # 排除golint的导出未注释的消息
     - linters:

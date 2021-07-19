@@ -3,8 +3,9 @@
 # 监听IP，留空则监听所有地址
 ip=""
 
-# 要内部解析的域名后缀，例如*.uam则填写uam
-domainSuffix = [".test."]
+# 要内部解析的域名后缀，例如*.test则填写.test.
+# 注意要以.结尾
+internalSuffix = [".uam."]
 
 # 退出等待时间
 quitWaitTimeout=5
@@ -15,10 +16,10 @@ quitWaitTimeout=5
 # tcp://1.1.1.1:53
 # tls://1.1.1.1:853
 # https://1.1.1.1/dns-query
-upstream.addrs=["udp://1.1.1.1:53", "tcp://1.1.1.1:53", "tls://1.1.1.1:853", "https://1.1.1.1/dns-query"]
+upstream.addrs=["udp://202.103.24.68:53", "tcp://223.5.5.5:53", "tls://223.5.5.5:853", "https://223.5.5.5/dns-query"]
 
 # 向上游DNS over HTTP/HTTPS服务查询时使用的HTTP代理地址
-# 目前仅支持向上游HoT服务发起查询时使用代理，且只能使用HTTP代理
+# 目前仅支持向上游HTTP/HTTPS服务发起查询时使用代理，且只能使用HTTP代理
 upstream.httpProxy=""
 
 # DNS over UDP服务的端口，如果为0则不启用该服务
@@ -39,6 +40,9 @@ tls.keyFile="./server.key"
 # DNS over HTTP服务的端口，默认80端口，如果为0则不启用该服务
 http.port=80
 
+# DNS over HTTP查询密码，header的Authorization参数值，留空则不需要密码
+http.auth="123456"
+
 # DNS over HTTPS服务的端口，默认443端口，留空则不启用该服务
 https.port=443
 
@@ -50,26 +54,26 @@ https.keyFile="./server.key"
 
 [storage]
 # redis的配置示例
-#type="redis"
-#config="""
-#{
-#  "addr": "192.168.51.212:6379",
-#  "database": 1,
-#  "password": "123456",
-#  "prefix": "dns:",
-#  "useTTL": false
-#}
-#"""
-
-# voltdb的配置示例
-type="voltdb"
+type="redis"
 config="""
 {
-  "addr": "127.0.0.1:21212",
-  "database": "domain",
+  "addr": "192.168.51.212:6379",
+  "database": 1,
+  "password": "123456",
+  "prefix": "dns:",
   "useTTL": false
 }
 """
+
+# voltdb的配置示例
+#type="voltdb"
+#config="""
+#{
+#  "addr": "192.168.51.212:21212",
+#  "database": "domain",
+#  "useTTL": false
+#}
+#"""
 
 [logger]
 # 记录级别: debug(默认)/info/warn/error

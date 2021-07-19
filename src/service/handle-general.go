@@ -1,8 +1,6 @@
 package service
 
 import (
-	"strings"
-
 	"local/global"
 
 	"github.com/miekg/dns"
@@ -26,7 +24,7 @@ func (gh GeneralHandler) ServeDNS(resp dns.ResponseWriter, reqMsg *dns.Msg) {
 	}()
 
 	// 查询内部域的记录
-	if strings.HasSuffix(reqMsg.Question[0].Name, ".uam.") {
+	if global.IsInternal(reqMsg.Question[0].Name) {
 		respMsg, err = queryStorage(reqMsg)
 		if err != nil {
 			log.Err(err).Caller().Msg("解析内部域名失败")
