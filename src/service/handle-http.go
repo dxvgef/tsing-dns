@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"local/global"
+	"local/storage"
 
 	"github.com/miekg/dns"
 	"github.com/rs/zerolog/log"
@@ -21,8 +22,12 @@ type HTTPHandler struct {
 func (hh HTTPHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	hh.resp = resp
 	hh.req = req
+
 	switch req.URL.Path {
-	case "/dns-query":
+	case global.Config.Service.HTTP.DNSQueryPath:
+		if global.Config.Service.HTTP.DNSQueryPath == "" {
+			break
+		}
 		if req.Method == http.MethodGet {
 			hh.dnsQueryByGET()
 			break
@@ -31,15 +36,39 @@ func (hh HTTPHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			break
 		}
 		hh.respStatus(http.StatusMethodNotAllowed)
-	case "/resolve":
+	case global.Config.Service.HTTP.JSONQueryPath:
+		if global.Config.Service.HTTP.JSONQueryPath == "" {
+			break
+		}
 		if req.Method != http.MethodGet {
 			hh.respStatus(http.StatusMethodNotAllowed)
 			break
 		}
-		hh.jsonHandler()
-	default:
-		hh.respStatus(http.StatusNotFound)
+		hh.jsonQueryHandler()
+	case global.Config.Service.HTTP.RegisterPath:
+		if global.Config.Service.HTTP.RegisterPath == "" {
+			break
+		}
+		if req.Method == http.MethodPost {
+			hh.register(false)
+			break
+		}
+		if req.Method == http.MethodPut {
+			hh.register(true)
+			break
+		}
+		hh.respStatus(http.StatusMethodNotAllowed)
+	case global.Config.Service.HTTP.DeletePath:
+		if global.Config.Service.HTTP.DeletePath == "" {
+			break
+		}
+		if req.Method == http.MethodDelete {
+			hh.delete()
+			break
+		}
+		hh.respStatus(http.StatusMethodNotAllowed)
 	}
+	hh.respStatus(http.StatusNotFound)
 }
 
 func (hh *HTTPHandler) respStatus(status int) {
@@ -60,6 +89,12 @@ func (hh *HTTPHandler) dnsQueryByGET() {
 		respMsg    *dns.Msg
 		respData   []byte
 	)
+
+	if global.Config.Service.HTTP.DNSQueryAuth && hh.req.Header.Get("Authorization") != global.Config.Service.HTTP.Authorization {
+		hh.respStatus(http.StatusUnauthorized)
+		return
+	}
+
 	defer func() {
 		if hh.req.Body != nil {
 			err = hh.req.Body.Close()
@@ -135,6 +170,12 @@ func (hh *HTTPHandler) dnsQueryByPOST() {
 		reqMsg   dns.Msg
 		respMsg  *dns.Msg
 	)
+
+	if global.Config.Service.HTTP.DNSQueryAuth && hh.req.Header.Get("Authorization") != global.Config.Service.HTTP.Authorization {
+		hh.respStatus(http.StatusUnauthorized)
+		return
+	}
+
 	defer func() {
 		if hh.req.Body != nil {
 			err = hh.req.Body.Close()
@@ -196,13 +237,18 @@ func (hh *HTTPHandler) dnsQueryByPOST() {
 }
 
 // -> GET /resolve -> json
-func (hh *HTTPHandler) jsonHandler() {
+func (hh *HTTPHandler) jsonQueryHandler() {
 	var (
 		err      error
 		reqMsg   = new(dns.Msg)
 		respData []byte
 		respMsg  *dns.Msg
 	)
+
+	if global.Config.Service.HTTP.JSONQueryAuth && hh.req.Header.Get("Authorization") != global.Config.Service.HTTP.Authorization {
+		hh.respStatus(http.StatusUnauthorized)
+		return
+	}
 
 	defer func() {
 		if hh.req.Body != nil {
@@ -254,4 +300,108 @@ func (hh *HTTPHandler) jsonHandler() {
 	if err != nil {
 		log.Warn().Err(err).Caller().Msg("响应数据时出错")
 	}
+}
+
+// 添加域名
+func (hh *HTTPHandler) register(replace bool) {
+	var (
+		err   error
+		rr    dns.RR
+		oldRR []dns.RR
+	)
+
+	if global.Config.Service.HTTP.RegisterAuth && hh.req.Header.Get("Authorization") != global.Config.Service.HTTP.Authorization {
+		hh.respStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if !hh.checkContentType() {
+		return
+	}
+
+	err = hh.req.ParseForm()
+	if err != nil {
+		hh.respStatus(http.StatusBadRequest)
+		return
+	}
+
+	rr, err = dns.NewRR(hh.req.PostFormValue("rr"))
+	if err != nil {
+		hh.respStatus(http.StatusBadRequest)
+		return
+	}
+
+	if !replace {
+		if oldRR, err = storage.Storage.Get(dns.Question{
+			Name:   rr.Header().Name,
+			Qtype:  rr.Header().Rrtype,
+			Qclass: rr.Header().Class,
+		}); err != nil {
+			log.Err(err).Caller().Str("name", rr.Header().Name).Str("type", dns.TypeToString[rr.Header().Rrtype]).Msg("查询存储器记录时出错")
+			hh.respStatus(http.StatusInternalServerError)
+			return
+		}
+
+		if len(oldRR) > 0 {
+			hh.respStatus(http.StatusBadRequest)
+			return
+		}
+	}
+
+	err = storage.Storage.Set(rr)
+	if err != nil {
+		log.Err(err).Caller().Str("name", rr.Header().Name).Str("type", dns.TypeToString[rr.Header().Rrtype]).Str("data", strings.TrimPrefix(rr.String(), rr.Header().String())).Msg("写入记录失败")
+		hh.respStatus(http.StatusInternalServerError)
+		return
+	}
+
+	hh.respStatus(http.StatusNoContent)
+}
+
+// 设置记录
+func (hh *HTTPHandler) delete() {
+	var (
+		err   error
+		rrBuf []byte
+		rr    dns.RR
+	)
+
+	if global.Config.Service.HTTP.DeleteAuth && hh.req.Header.Get("Authorization") != global.Config.Service.HTTP.Authorization {
+		hh.respStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if hh.req.URL.Query().Get("rr") == "" {
+		hh.respStatus(http.StatusBadRequest)
+		return
+	}
+
+	rrBuf, err = base64.RawURLEncoding.DecodeString(hh.req.URL.Query().Get("rr"))
+	if err != nil {
+		hh.respStatus(http.StatusBadRequest)
+		return
+	}
+
+	rr, err = dns.NewRR(global.BytesToStr(rrBuf))
+	if err != nil {
+		hh.respStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = storage.Storage.Del(rr)
+	if err != nil {
+		log.Err(err).Caller().Str("name", rr.Header().Name).Str("type", dns.TypeToString[rr.Header().Rrtype]).Str("data", strings.TrimPrefix(rr.String(), rr.Header().String())).Msg("删除记录失败")
+		hh.respStatus(http.StatusInternalServerError)
+		return
+	}
+
+	hh.respStatus(http.StatusNoContent)
+}
+
+func (hh *HTTPHandler) checkContentType() bool {
+	if !strings.HasPrefix(hh.req.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+		hh.respStatus(http.StatusBadRequest)
+		return false
+	}
+	return true
 }

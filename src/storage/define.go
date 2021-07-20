@@ -26,19 +26,19 @@ func MakeStorage() (err error) {
 	case "redis":
 		Storage, err = redis.NewWithJSON(global.Config.Storage.Config)
 		if err != nil {
-			log.Fatal().Err(err).Caller().Msg("初始化存储器失败")
+			log.Fatal().Err(err).Caller().Msg("构建 Redis 存储器失败")
 			break
 		}
-		log.Info().Str("type", "redis").Msg("使用Redis存储引擎")
+		log.Info().Msg("使用 Redis 存储器")
 	case "voltdb":
 		Storage, err = voltdb.NewWithJSON(global.Config.Storage.Config)
 		if err != nil {
-			log.Fatal().Err(err).Caller().Msg("初始化存储器失败")
+			log.Fatal().Err(err).Caller().Msg("构建 VoltDB 存储器失败")
 			break
 		}
-		log.Info().Str("type", "voltdb").Msg("使用VoltDB存储引擎")
+		log.Info().Msg("使用 VoltDB 存储器")
 	default:
-		log.Fatal().Caller().Str("type", global.Config.Storage.Type).Msg("未知的存储器类型")
+		log.Fatal().Caller().Str("type", global.Config.Storage.Type).Msg("不支持的存储器类型")
 	}
 
 	// writeTestData()
@@ -52,7 +52,7 @@ func MakeStorage() (err error) {
 // 		rr  dns.RR
 // 	)
 // 	a.Hdr.Ttl = 3600
-// 	a.Hdr.Name = "test.dns.tsing"
+// 	a.Hdr.Name = "test.uam"
 // 	a.Hdr.Rrtype = dns.TypeA
 // 	a.Hdr.Class = dns.ClassINET
 // 	a.A = net.ParseIP("127.0.0.1")

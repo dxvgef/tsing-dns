@@ -27,11 +27,6 @@ var Config struct {
 			Addrs     []string `toml:"addrs"`
 			HTTPProxy string   `toml:"httpProxy"`
 		} `toml:"upstream"`
-		HTTPS struct {
-			Port     uint16 `toml:"port"`
-			CertFile string `toml:"certFile"`
-			KeyFile  string `toml:"keyFile"`
-		} `toml:"https"`
 		TLS struct {
 			Port     uint16 `toml:"port"`
 			CertFile string `toml:"certFile"`
@@ -41,7 +36,19 @@ var Config struct {
 		IP              string   `toml:"ip"`
 		QuitWaitTimeout uint     `toml:"quitWaitTimeout"`
 		HTTP            struct {
-			Port uint16 `toml:"port"`
+			CertFile      string `toml:"certFile"`
+			KeyFile       string `toml:"keyFile"`
+			Authorization string `toml:"authorization"`
+			DNSQueryPath  string `toml:"dnsQueryPath"`
+			JSONQueryPath string `toml:"jsonQueryPath"`
+			RegisterPath  string `toml:"registerPath"`
+			DeletePath    string `toml:"deletePath"`
+			Port          uint16 `toml:"port"`
+			SSLPort       uint16 `toml:"sslPort"`
+			DNSQueryAuth  bool   `toml:"dnsQueryAuth"`
+			JSONQueryAuth bool   `toml:"jsonQueryAuth"`
+			RegisterAuth  bool   `toml:"registerAuth"`
+			DeleteAuth    bool   `toml:"registerAuth"`
 		} `toml:"http"`
 		UDP struct {
 			Port uint16 `toml:"port"`
@@ -72,10 +79,6 @@ func defaultConfig() {
 	Config.Debug = true
 	Config.Service.QuitWaitTimeout = 5
 
-	Config.Service.UDP.Port = 53
-	Config.Service.TCP.Port = 53
-	Config.Service.HTTP.Port = 80
-
 	Config.Logger.Level = "debug"
 	Config.Logger.FileMode = 0600
 	Config.Logger.Encode = "console"
@@ -88,28 +91,33 @@ func LoadConfig() (err error) {
 	defaultConfig()
 
 	// 解析启动参数
-	// flag.StringVar(&LaunchFlag.ConfigSource, "cfg", LaunchFlag.ConfigSource, "配置来源，可以是file表示本地配置文件或者配置中心地址ip:port，默认file")
 	flag.StringVar(&LaunchFlag.Env, "env", LaunchFlag.Env, "环境变量，默认为空")
 	flag.Parse()
 
 	LaunchFlag.Env = strings.ToLower(LaunchFlag.Env)
 
-	log.Info().Str("配置来源(cfg)", LaunchFlag.ConfigSource).Str("环境变量(env)", LaunchFlag.Env).Msg("启动参数")
+	log.Info().Str("env", LaunchFlag.Env).Msg("启动参数")
 
 	// 加载本地配置文件
 	if LaunchFlag.ConfigSource == "file" {
 		// 加载本地配置文件
 		if err = loadConfigFile(); err != nil {
-			log.Err(err).Caller().Msg("加载本地配置文件失败")
+			log.Err(err).Caller().Msg("加载配置文件失败")
 			return
 		}
 	}
-	Config.Service.Upstream.Count = len(Config.Service.Upstream.Addrs)
-	if Config.Service.Upstream.Count < 1 {
-		log.Warn().Msg("注意：没有从配置中获取至少一个有效的上游DNS服务地址，DNS转发服务无法工作")
-	} else {
-		log.Info().Int("Upstream Count", Config.Service.Upstream.Count).Msg("启用DNS转发服务")
+
+	if (Config.Service.HTTP.Port > 0 ||
+		Config.Service.HTTP.SSLPort > 0) &&
+		Config.Service.HTTP.DNSQueryPath != "" &&
+		Config.Service.HTTP.RegisterPath != "" &&
+		Config.Service.HTTP.DNSQueryPath == Config.Service.HTTP.JSONQueryPath {
+		log.Fatal().Caller().Msg("dnsQueryPath 与 jsonQueryPath 的参数值不能相同")
+		return
 	}
+
+	Config.Service.Upstream.Count = len(Config.Service.Upstream.Addrs)
+
 	if Config.Service.TLS.Port > 0 {
 		if Config.Service.TLS.CertFile == "" {
 			err = errors.New("启用DNS over TLS服务时，certFile参数值不能为空")
@@ -122,14 +130,14 @@ func LoadConfig() (err error) {
 			return
 		}
 	}
-	if Config.Service.HTTPS.Port > 0 {
-		if Config.Service.HTTPS.CertFile == "" {
-			err = errors.New("启用DNS over HTTPS服务时，certFile参数值不能为空")
+	if Config.Service.HTTP.SSLPort > 0 {
+		if Config.Service.HTTP.CertFile == "" {
+			err = errors.New("启用HTTPS服务时，certFile参数值不能为空")
 			log.Err(err).Caller().Msg("解析配置失败")
 			return
 		}
-		if Config.Service.HTTPS.KeyFile == "" {
-			err = errors.New("启用DNS over HTTPS服务时，keyFile参数值不能为空")
+		if Config.Service.HTTP.KeyFile == "" {
+			err = errors.New("启用HTTPS服务时，keyFile参数值不能为空")
 			log.Err(err).Caller().Msg("解析配置失败")
 			return
 		}
@@ -157,9 +165,9 @@ func loadConfigFile() (err error) {
 	// 解析配置文件到Config
 	err = toml.NewDecoder(file).Decode(&Config)
 	if err != nil {
-		log.Err(err).Caller().Msg("加载本地配置文件失败")
+		log.Err(err).Caller().Msg("加载配置文件失败")
 		return
 	}
-	log.Info().Str("路径", filePath).Msg("加载本地配置文件")
+	log.Info().Str("路径", filePath).Msg("加载配置文件")
 	return
 }

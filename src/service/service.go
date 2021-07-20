@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// 启动socket服务
+// 启用socket服务
 func Start() {
 	var (
 		err           error
@@ -29,13 +29,14 @@ func Start() {
 		httpHandler   = new(HTTPHandler)
 	)
 
-	if storage.Storage == nil {
-		log.Fatal().Caller().Msg("存储器未构建")
-		return
+	if global.Config.Service.Upstream.Count == 0 && len(global.Config.Service.InternalSuffix) == 0 {
+		log.Fatal().Msg("程序已退出，因DNS转发和内部域名解析服务都未启用")
+		os.Exit(0)
 	}
 
 	go func() {
 		if global.Config.Service.UDP.Port < 1 {
+			log.Warn().Msg("已禁用 DNS over UDP，因 service.udp.port 参数未配置")
 			return
 		}
 		udpService = &dns.Server{
@@ -43,15 +44,16 @@ func Start() {
 			Net:     "udp",
 			Handler: socketHandler,
 		}
-		log.Info().Str("Addr", udpService.Addr).Msg("启动DNS over UDP服务")
+		log.Info().Str("Addr", udpService.Addr).Msg("启用 DNS over UDP")
 		if err = udpService.ListenAndServe(); err != nil {
-			log.Fatal().Err(err).Caller().Msg("启动DNS over UDP服务失败")
+			log.Fatal().Err(err).Caller().Msg("启用 DNS over UDP 失败")
 			return
 		}
 	}()
 
 	go func() {
 		if global.Config.Service.TCP.Port < 1 {
+			log.Warn().Msg("已禁用 DNS over TCP，因 service.tcp.port 参数未配置")
 			return
 		}
 		tcpService = &dns.Server{
@@ -59,15 +61,16 @@ func Start() {
 			Net:     "tcp",
 			Handler: socketHandler,
 		}
-		log.Info().Str("Addr", tcpService.Addr).Msg("启动DNS over TCP服务")
+		log.Info().Str("Addr", tcpService.Addr).Msg("启用 DNS over TCP")
 		if err = tcpService.ListenAndServe(); err != nil {
-			log.Fatal().Err(err).Caller().Msg("启动DNS over TCP服务失败")
+			log.Fatal().Err(err).Caller().Msg("启用 DNS over TCP 失败")
 			return
 		}
 	}()
 
 	go func() {
 		if global.Config.Service.TLS.Port < 1 {
+			log.Warn().Msg("已禁用 DNS over TLS，因 service.tls.port 参数未配置")
 			return
 		}
 		var cert tls.Certificate
@@ -82,46 +85,95 @@ func Start() {
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}}, // nolint:gosec
 			Handler:   socketHandler,
 		}
-		log.Info().Str("Addr", tlsService.Addr).Msg("启动DNS over TLS服务")
+		log.Info().Str("Addr", tlsService.Addr).Msg("启用 DNS over TLS")
 		if err = tlsService.ListenAndServe(); err != nil {
-			log.Fatal().Err(err).Caller().Msg("启动DNS over TLS服务失败")
+			log.Fatal().Err(err).Caller().Msg("启用 DNS over TLS 失败")
 			return
 		}
 	}()
 
 	go func() {
 		if global.Config.Service.HTTP.Port < 1 {
+			log.Warn().Msg("已禁用 HTTP，因 service.http.port 参数未配置")
+			return
+		}
+		if global.Config.Service.HTTP.DNSQueryPath == "" &&
+			global.Config.Service.HTTP.JSONQueryPath == "" &&
+			global.Config.Service.HTTP.RegisterPath == "" {
+			log.Warn().Msg("已禁用 HTTP，因依赖 HTTP 的功能全部未启用")
 			return
 		}
 		httpService = &http.Server{
 			Addr:    global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.HTTP.Port), 10),
 			Handler: httpHandler,
 		}
-		log.Info().Str("Addr", httpService.Addr).Msg("启动DNS over HTTP服务")
+		log.Info().Str("Addr", httpService.Addr).Msg("启用 HTTP")
 		if err = httpService.ListenAndServe(); err != nil {
 			if err.Error() != http.ErrServerClosed.Error() {
-				log.Fatal().Err(err).Caller().Msg("启动DNS over HTTP服务失败")
+				log.Fatal().Err(err).Caller().Msg("启用 HTTP 失败")
 			}
 			return
 		}
 	}()
 
 	go func() {
-		if global.Config.Service.HTTPS.Port < 1 {
+		if global.Config.Service.HTTP.SSLPort < 1 {
+			log.Warn().Msg("已禁用 HTTPS，因 service.http.sslPort 参数未配置")
+			return
+		}
+		if global.Config.Service.HTTP.DNSQueryPath == "" &&
+			global.Config.Service.HTTP.JSONQueryPath == "" &&
+			global.Config.Service.HTTP.RegisterPath == "" {
+			log.Warn().Msg("已禁用 HTTPS，因依赖 HTTPS 的功能全部未启用")
 			return
 		}
 		httpsService = &http.Server{
-			Addr:    global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.HTTPS.Port), 10),
+			Addr:    global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.HTTP.SSLPort), 10),
 			Handler: httpHandler,
 		}
-		log.Info().Str("Addr", httpsService.Addr).Msg("启动DNS over HTTPS服务")
-		if err = httpsService.ListenAndServeTLS(global.Config.Service.HTTPS.CertFile, global.Config.Service.HTTPS.KeyFile); err != nil {
+		log.Info().Str("Addr", httpsService.Addr).Msg("启用 HTTPS")
+		if err = httpsService.ListenAndServeTLS(global.Config.Service.HTTP.CertFile, global.Config.Service.HTTP.KeyFile); err != nil {
 			if err.Error() != http.ErrServerClosed.Error() {
-				log.Fatal().Err(err).Caller().Msg("启动DNS over HTTPS服务失败")
+				log.Fatal().Err(err).Caller().Msg("启用 HTTPS 失败")
 			}
 			return
 		}
 	}()
+
+	if global.Config.Service.HTTP.Port > 0 || global.Config.Service.HTTP.SSLPort > 0 {
+		if global.Config.Service.HTTP.DNSQueryPath != "" {
+			log.Info().Str("method", "GET/POST").Str("path", global.Config.Service.HTTP.DNSQueryPath).Msg("启用 DNS over HTTP")
+		} else {
+			log.Warn().Msg("已禁用 DNS over HTTP，因 service.http.dnsQueryPath 参数未设置")
+		}
+		if global.Config.Service.HTTP.JSONQueryPath != "" {
+			log.Info().Str("method", http.MethodGet).Str("path", global.Config.Service.HTTP.JSONQueryPath).Msg("启用 HTTP JSON")
+		} else {
+			log.Warn().Msg("已禁用 HTTP JSON，因 service.http.jsonQueryPath 参数未设置")
+		}
+		if global.Config.Service.HTTP.RegisterPath != "" {
+			log.Info().Str("method", "POST/PUT").Str("path", global.Config.Service.HTTP.RegisterPath).Msg("启用 HTTP 注册")
+		} else {
+			log.Warn().Msg("已禁用 HTTP 注册，因 service.http.registerPath 参数未设置")
+		}
+	}
+
+	if global.Config.Service.Upstream.Count < 1 {
+		log.Warn().Msg("已禁用 DNS 转发，因 service.upstream.addr 参数为空")
+	} else {
+		log.Info().Msg("启用 DNS 转发")
+	}
+
+	if len(global.Config.Service.InternalSuffix) < 1 {
+		log.Warn().Msg("已禁用内部域名解析，因 service.internalSuffix 参数为空")
+	} else {
+		// 构建存储器
+		err = storage.MakeStorage()
+		if err != nil {
+			log.Fatal().Caller().Err(err).Msg("构建存储器失败")
+			return
+		}
+	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)

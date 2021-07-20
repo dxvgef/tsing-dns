@@ -3,7 +3,6 @@ package main
 import (
 	"local/global"
 	"local/service"
-	"local/storage"
 
 	_ "github.com/VoltDB/voltdb-client-go/voltdbclient"
 )
@@ -21,11 +20,6 @@ func main() {
 
 	// 配置日志记录器
 	if err = global.SetupLogger(); err != nil {
-		return
-	}
-
-	// 构建存储器
-	if err = storage.MakeStorage(); err != nil {
 		return
 	}
 

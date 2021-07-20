@@ -72,7 +72,7 @@ func (inst *Redis) Set(rr dns.RR) (err error) {
 	if inst.config.UseTTL {
 		expires = time.Duration(rr.Header().Ttl) * time.Second
 	}
-	key = inst.config.Prefix + name + ":" + dns.TypeToString[rr.Header().Rrtype] + ":" + keySign
+	key = inst.config.Prefix + name + ":" + dns.ClassToString[rr.Header().Class] + "-" + dns.TypeToString[rr.Header().Rrtype] + ":" + keySign
 	err = inst.cli.Set(ctx, key, rr.String(), expires).Err()
 	return
 }
@@ -88,7 +88,7 @@ func (inst *Redis) Get(question dns.Question) ([]dns.RR, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(inst.config.Timeout)*time.Second)
 	defer cancel()
 	name := strings.TrimSuffix(question.Name, ".")
-	key := inst.config.Prefix + name + ":" + dns.TypeToString[question.Qtype] + ":*"
+	key := inst.config.Prefix + name + ":" + dns.ClassToString[question.Qclass] + "-" + dns.TypeToString[question.Qtype] + ":*"
 
 	keys, err = inst.cli.Keys(ctx, key).Result()
 	if err != nil {
@@ -114,7 +114,7 @@ func (inst *Redis) Del(rr dns.RR) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(inst.config.Timeout)*time.Second)
 	defer cancel()
 	name := strings.TrimSuffix(rr.Header().Name, ".")
-	key := inst.config.Prefix + name + ":" + dns.TypeToString[rr.Header().Rrtype]
-
+	keySign, err := global.KeySign(rr)
+	key := inst.config.Prefix + name + ":" + dns.ClassToString[rr.Header().Class] + "-" + dns.TypeToString[rr.Header().Rrtype] + ":" + keySign
 	return inst.cli.Del(ctx, key).Err()
 }

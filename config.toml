@@ -3,9 +3,10 @@
 # 监听IP，留空则监听所有地址
 ip=""
 
-# 要内部解析的域名后缀，例如www.test.tsing则填写.tsing.
+# 内部域名后缀，例如*.uam则填写.test.
 # 注意要以.结尾
-internalSuffix = [".tsing."]
+# 如果留空，则不启用内部域名解析的功能，同时存储器设置也不会生效
+internalSuffix=["test.com."]
 
 # 退出等待时间
 quitWaitTimeout=5
@@ -16,62 +17,91 @@ quitWaitTimeout=5
 # tcp://1.1.1.1:53
 # tls://1.1.1.1:853
 # https://1.1.1.1/dns-query
-upstream.addrs=["udp://1.1.1.1:53", "tcp://1.1.1.1:53", "tls://1.1.1.1:853", "https://1.1.1.1/dns-query"]
+[service.upstream]
+addrs=["udp://1.1.1.1:53", "tcp://1.1.1.1:53", "tls://1.1.1.1:853", "https://1.1.1.1/dns-query"]
 
 # 向上游DNS over HTTP/HTTPS服务查询时使用的HTTP代理地址
 # 目前仅支持向上游HTTP/HTTPS服务发起查询时使用代理，且只能使用HTTP代理
-upstream.httpProxy=""
+httpProxy=""
 
 # DNS over UDP服务的端口，如果为0则不启用该服务
-udp.port=53
+[service.udp]
+port=53
 
 # DNS over TCP服务的端口，默认53端口，如果为0则不启用该服务
-tcp.port=53
+[service.tcp]
+port=53
 
 # DNS over TLS服务的端口，默认853端口，如果为0则不启用该服务
-tls.port=853
+[service.tls]
+port=853
 
 # DNS over TLS服务的cert文件地址，不启用该服务时可以留空
-tls.certFile="./server.pem"
+certFile="./server.pem"
 
 # DNS over TLS服务的key文件地址，不启用该服务时可以留空
-tls.keyFile="./server.key"
+keyFile="./server.key"
 
-# DNS over HTTP服务的端口，默认80端口，如果为0则不启用该服务
-http.port=80
+# HTTP服务的端口，默认80端口，如果为0则不启用该服务
+[service.http]
+port=80
 
-# DNS over HTTPS服务的端口，默认443端口，留空则不启用该服务
-https.port=443
+# HTTPS服务的端口，默认443端口，留空则不启用该服务
+sslPort=443
 
-# DNS over HTTPS服务的证书文件(cert)路径，不启用该服务时可以留空
-https.certFile="./server.pem"
+# HTTPS服务的证书文件(cert/pem)路径，不启用该服务时可以留空
+certFile="./server.pem"
 
-# DNS over HTTPS服务的私钥文件(key)路径，不启用该服务时可以留空
-https.keyFile="./server.key"
+# HTTPS服务的私钥文件(key)路径，不启用该服务时可以留空
+keyFile="./server.key"
+
+# HTTP API 密钥，做为header中的Authorization参数值，留空则不需要验证
+authorization = "123456"
+
+# HTTP DNS (DoH) 查询路径，留空则不启用本功能
+dnsQueryPath = "/dns-query"
+# HTTP DNS 查询是否需要验证密钥
+dnsQueryAuth = false
+
+# HTTP JSON 查询域名路径，留空则不启用本功能
+jsonQueryPath = "/resolve"
+# HTTP JSON 查询是否需要验证密钥
+jsonQueryAuth = false
+
+# HTTP API 注册域名路径，留空则不启用本功能
+registerPath = "/register"
+# HTTP API 注册域名是否需要验证密钥
+registerAuth = true
+
+# HTTP API 删除域名路径，留空则不启用本功能
+deletePath = "/delete"
+# HTTP API 删除域名是否需要验证密钥
+deleteAuth = true
 
 [storage]
 # redis的配置示例
-type="redis"
-config="""
-{
-  "addr": "127.0.0.1:6379",
-  "database": 1,
-  "password": "",
-  "prefix": "dns:",
-  "useTTL": false
-}
-"""
-# voltdb的配置示例
-#type="voltdb"
+#type="redis"
 #config="""
 #{
-#  "addr": "127.0.0.1:21212",
-#  "database": "domain",
-#  "username": "",
+#  "addr": "127.0.0.1:6379",
+#  "database": 0,
 #  "password": "",
+#  "prefix": "dns:",
 #  "useTTL": false
 #}
 #"""
+
+# voltdb的配置示例
+type="voltdb"
+config="""
+{
+  "addr": "127.0.0.1:21212",
+  "database": "domain",
+  "username": "",
+  "password": "",
+  "useTTL": false
+}
+"""
 
 [logger]
 # 记录级别: debug(默认)/info/warn/error
@@ -81,13 +111,13 @@ level="debug"
 output=""
 
 # 日志时间格式，默认：y年-m月-d日 h时:i分:s秒
-# timeFormat="y-m-d h:i:s"
+timeFormat="y-m-d h:i:s"
 
 # 日志编码：console默认/json
-# encode="console"
+encode="console"
 
-# 在控制台输出时不使用颜色，仅当
-# noColor=false
+# 在控制台输出时不使用颜色
+noColor=false
 
 # 日志文件的权限，默认：0600
 # fileMode=0600
