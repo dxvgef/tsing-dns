@@ -41,27 +41,5 @@ func MakeStorage() (err error) {
 		log.Fatal().Caller().Str("type", global.Config.Storage.Type).Msg("不支持的存储器类型")
 	}
 
-	// writeTestData()
 	return
 }
-
-// func writeTestData() {
-// 	var (
-// 		err error
-// 		a   dns.A
-// 		rr  dns.RR
-// 	)
-// 	a.Hdr.Ttl = 3600
-// 	a.Hdr.Name = "test.uam"
-// 	a.Hdr.Rrtype = dns.TypeA
-// 	a.Hdr.Class = dns.ClassINET
-// 	a.A = net.ParseIP("127.0.0.1")
-// 	rr, err = dns.NewRR(a.String())
-// 	if err != nil {
-// 		log.Fatal().Caller().Err(err).Msg("生成测试数据失败")
-// 	}
-// 	err = Storage.Set(rr, 3600)
-// 	if err != nil {
-// 		log.Fatal().Caller().Err(err).Msg("写入测试数据失败")
-// 	}
-// }

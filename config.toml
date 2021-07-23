@@ -3,10 +3,9 @@
 # 监听IP，留空则监听所有地址
 ip=""
 
-# 内部域名后缀，例如*.uam则填写.test.
-# 注意要以.结尾
+# 内部域名后缀，例如*.test则填写.test
 # 如果留空，则不启用内部域名解析的功能，同时存储器设置也不会生效
-internalSuffix=["test.com."]
+internalSuffix=[".uam"]
 
 # 退出等待时间
 quitWaitTimeout=5
@@ -79,29 +78,30 @@ deletePath = "/delete"
 deleteAuth = true
 
 [storage]
-# redis的配置示例
-#type="redis"
-#config="""
-#{
-#  "addr": "127.0.0.1:6379",
-#  "database": 0,
-#  "password": "",
-#  "prefix": "dns:",
-#  "useTTL": false
-#}
-#"""
+# 存储器中的内部域名使用过期特性，过期的记录将会被自动删除(并非立即删除，但查询时不会被命中)
+useExpire=false
 
-# voltdb的配置示例
-type="voltdb"
+# redis的配置示例
+type="redis"
 config="""
 {
-  "addr": "127.0.0.1:21212",
-  "database": "domain",
-  "username": "",
-  "password": "",
-  "useTTL": false
+ "addr": "127.0.0.1:6379",
+ "database": 0,
+ "password": "",
+ "prefix": "dns:"
 }
 """
+
+# voltdb的配置示例
+# type="voltdb"
+# config="""
+# {
+#   "addr": "127.0.0.1:21212",
+#   "table": "domain",
+#   "username": "",
+#   "password": ""
+# }
+# """
 
 [logger]
 # 记录级别: debug(默认)/info/warn/error
@@ -111,13 +111,13 @@ level="debug"
 output=""
 
 # 日志时间格式，默认：y年-m月-d日 h时:i分:s秒
-timeFormat="y-m-d h:i:s"
+# timeFormat="y-m-d h:i:s"
 
 # 日志编码：console默认/json
-encode="console"
+# encode="console"
 
 # 在控制台输出时不使用颜色
-noColor=false
+# noColor=false
 
 # 日志文件的权限，默认：0600
 # fileMode=0600

@@ -58,8 +58,9 @@ var Config struct {
 		} `toml:"tcp"`
 	} `toml:"service"`
 	Storage struct {
-		Type   string `toml:"type"`
-		Config string `toml:"config"`
+		UseExpire bool   `toml:"useExpire"`
+		Type      string `toml:"type"`
+		Config    string `toml:"config"`
 	} `toml:"storage"`
 	Logger struct {
 		Level      string      `toml:"level"`
@@ -142,6 +143,13 @@ func LoadConfig() (err error) {
 			return
 		}
 	}
+
+	for k := range Config.Service.InternalSuffix {
+		if !strings.HasSuffix(Config.Service.InternalSuffix[k], ".") {
+			Config.Service.InternalSuffix[k] += "."
+		}
+	}
+
 	return
 }
 

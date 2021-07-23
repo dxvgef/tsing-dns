@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"local/global"
 
 	"github.com/miekg/dns"
@@ -23,12 +25,15 @@ func (gh GeneralHandler) ServeDNS(resp dns.ResponseWriter, reqMsg *dns.Msg) {
 		}
 	}()
 
+	if !strings.HasSuffix(reqMsg.Question[0].Name, ".") {
+		reqMsg.Question[0].Name += "."
+	}
+
 	// 查询内部域的记录
 	if global.IsInternal(reqMsg.Question[0].Name) {
 		respMsg, err = queryStorage(reqMsg)
 		if err != nil {
 			log.Err(err).Caller().Msg("解析内部域名失败")
-			// return
 		}
 	} else if global.Config.Service.Upstream.Count > 0 {
 		// 查询上游服务
@@ -38,7 +43,6 @@ func (gh GeneralHandler) ServeDNS(resp dns.ResponseWriter, reqMsg *dns.Msg) {
 		respMsg, err = upstream.Query()
 		if err != nil {
 			log.Err(err).Caller().Msg("查询上游服务失败")
-			// return
 		}
 	}
 
@@ -46,6 +50,11 @@ func (gh GeneralHandler) ServeDNS(resp dns.ResponseWriter, reqMsg *dns.Msg) {
 		respMsg = &dns.Msg{}
 		respMsg.SetReply(reqMsg)
 		respMsg.Rcode = dns.RcodeServerFailure
+	}
+
+	if len(respMsg.Answer) == 0 {
+		respMsg.SetReply(reqMsg)
+		respMsg.Rcode = dns.RcodeNameError
 	}
 
 	// 发送响应消息
