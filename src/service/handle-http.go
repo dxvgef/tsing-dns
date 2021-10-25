@@ -73,7 +73,6 @@ func (hh HTTPHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (hh *HTTPHandler) respStatus(status int, message string) {
-	log.Debug().Int("status", status).Msg("执行了status")
 	hh.resp.WriteHeader(status)
 	if status == http.StatusNoContent {
 		return
@@ -321,7 +320,6 @@ func (hh *HTTPHandler) jsonQueryHandler() {
 
 // 添加域名
 func (hh *HTTPHandler) register(replace bool) {
-	log.Debug().Bool("replace", replace).Msg("执行了注册")
 	var (
 		err   error
 		rr    dns.RR

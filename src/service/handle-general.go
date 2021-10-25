@@ -58,7 +58,6 @@ func (handler GeneralHandler) ServeDNS(resp dns.ResponseWriter, reqMsg *dns.Msg)
 
 	// 防止UDP客户端无法接收超过512字节的数据，清空ns(AUTHORITY SECTION)和extra(ADDITIONAL SECTION)节点
 	if resp.LocalAddr().Network() == "udp" {
-		log.Debug().Msg("udp协议")
 		respMsg.Extra = nil
 		respMsg.Ns = nil
 	}
