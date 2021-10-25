@@ -19,14 +19,14 @@ import (
 // 启用socket服务
 func Start() {
 	var (
-		err           error
-		tcpService    *dns.Server
-		tlsService    *dns.Server
-		udpService    *dns.Server
-		httpService   *http.Server
-		httpsService  *http.Server
-		socketHandler = new(GeneralHandler)
-		httpHandler   = new(HTTPHandler)
+		err            error
+		tcpService     *dns.Server
+		tlsService     *dns.Server
+		udpService     *dns.Server
+		httpService    *http.Server
+		httpsService   *http.Server
+		generalHandler = new(GeneralHandler)
+		httpHandler    = new(HTTPHandler)
 	)
 
 	if global.Config.Service.Upstream.Count == 0 && len(global.Config.Service.InternalSuffix) == 0 {
@@ -42,7 +42,7 @@ func Start() {
 		udpService = &dns.Server{
 			Addr:    global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.UDP.Port), 10),
 			Net:     "udp",
-			Handler: socketHandler,
+			Handler: generalHandler,
 		}
 		log.Info().Str("Addr", udpService.Addr).Msg("启用 DNS over UDP")
 		if err = udpService.ListenAndServe(); err != nil {
@@ -59,7 +59,7 @@ func Start() {
 		tcpService = &dns.Server{
 			Addr:    global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.TCP.Port), 10),
 			Net:     "tcp",
-			Handler: socketHandler,
+			Handler: generalHandler,
 		}
 		log.Info().Str("Addr", tcpService.Addr).Msg("启用 DNS over TCP")
 		if err = tcpService.ListenAndServe(); err != nil {
@@ -83,7 +83,7 @@ func Start() {
 			Addr:      global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.TLS.Port), 10),
 			Net:       "tcp-tls",
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}}, // nolint:gosec
-			Handler:   socketHandler,
+			Handler:   generalHandler,
 		}
 		log.Info().Str("Addr", tlsService.Addr).Msg("启用 DNS over TLS")
 		if err = tlsService.ListenAndServe(); err != nil {
