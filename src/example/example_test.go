@@ -2,6 +2,7 @@ package example
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"io"
 	"net/http"
@@ -20,7 +21,9 @@ func TestRegister(t *testing.T) {
 		req    *http.Request
 		resp   *http.Response
 	)
-	req, err = http.NewRequest("POST", "http://127.0.0.1/register", strings.NewReader("rr=dxvgef.test 3600 IN A 127.0.0.1"))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err = http.NewRequestWithContext(ctx, "POST", "http://127.0.0.1/register", strings.NewReader("rr=dxvgef.test 3600 IN A 127.0.0.1"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +103,9 @@ func TestHTTPGET(t *testing.T) {
 
 	client := http.DefaultClient
 
-	req, err = http.NewRequest("GET", "http://127.0.0.1/dns-query?dns="+bodyStr, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err = http.NewRequestWithContext(ctx, "GET", "http://127.0.0.1/dns-query?dns="+bodyStr, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +155,9 @@ func TestHTTPPOST(t *testing.T) {
 	}
 
 	client := http.DefaultClient
-	req, err = http.NewRequest("POST", "http://127.0.0.1/dns-query", bytes.NewBuffer(body))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err = http.NewRequestWithContext(ctx, "POST", "http://127.0.0.1/dns-query", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,14 +196,12 @@ func TestResolve(t *testing.T) {
 	qName := "dxvgef.test"
 	qType := "A"
 	client := http.DefaultClient
-
-	req, err = http.NewRequest("GET", "http://127.0.0.1/resolve?name="+qName+"&type="+qType, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err = http.NewRequestWithContext(ctx, "GET", "http://127.0.0.1/resolve?name="+qName+"&type="+qType, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// req.Header.Set("Content-Type", "application/dns-message")
-	// req.Header.Set("accept", "application/dns-message")
 
 	resp, err = client.Do(req)
 	if err != nil {
