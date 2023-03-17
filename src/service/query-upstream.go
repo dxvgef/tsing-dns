@@ -6,7 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -105,7 +105,7 @@ func (upstream *Upstream) QueryDNS(netType string, addr string) (respMsg *dns.Ms
 	)
 
 	if netType == "tcp-tls" {
-		dnsReq.TLSConfig = &tls.Config{InsecureSkipVerify: true} // nolint:gosec
+		dnsReq.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS13}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -127,7 +127,7 @@ func (upstream *Upstream) QueryTLS(addr string, tlsConfig *tls.Config) (respMsg 
 	}
 
 	if tlsConfig == nil {
-		dnsReq.TLSConfig = &tls.Config{InsecureSkipVerify: true} // nolint:gosec
+		dnsReq.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS13}
 	} else {
 		dnsReq.TLSConfig = tlsConfig
 	}
@@ -203,7 +203,7 @@ func (upstream *Upstream) QueryByGET(addr string, proxy string) (respMsg *dns.Ms
 		err = errors.New("收到错误响应：" + httpResp.Status)
 		return
 	}
-	respMsgBuf, err = ioutil.ReadAll(httpResp.Body)
+	respMsgBuf, err = io.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Err(err).Caller().Msg("读取DoT服务响应数据失败")
 		return
@@ -268,7 +268,7 @@ func (upstream *Upstream) QueryByPOST(addr string, proxy string) (respMsg *dns.M
 		err = errors.New("收到错误响应：" + httpResp.Status)
 		return
 	}
-	respBody, err = ioutil.ReadAll(httpResp.Body)
+	respBody, err = io.ReadAll(httpResp.Body)
 	if err != nil {
 		log.Err(err).Caller().Msg("读取DoT服务响应数据失败")
 		return
