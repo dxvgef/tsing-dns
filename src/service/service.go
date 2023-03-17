@@ -82,7 +82,7 @@ func Start() {
 		tlsService = &dns.Server{
 			Addr:      global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.TLS.Port), 10),
 			Net:       "tcp-tls",
-			TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}}, // nolint:gosec
+			TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS13},
 			Handler:   generalHandler,
 		}
 		log.Info().Str("Addr", tlsService.Addr).Msg("启用 DNS over TLS")
@@ -104,8 +104,9 @@ func Start() {
 			return
 		}
 		httpService = &http.Server{
-			Addr:    global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.HTTP.Port), 10),
-			Handler: httpHandler,
+			ReadHeaderTimeout: 10 * time.Second,
+			Addr:              global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.HTTP.Port), 10),
+			Handler:           httpHandler,
 		}
 		log.Info().Str("Addr", httpService.Addr).Msg("启用 HTTP")
 		if err = httpService.ListenAndServe(); err != nil {
@@ -128,8 +129,9 @@ func Start() {
 			return
 		}
 		httpsService = &http.Server{
-			Addr:    global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.HTTP.SSLPort), 10),
-			Handler: httpHandler,
+			ReadHeaderTimeout: 10 * time.Second,
+			Addr:              global.Config.Service.IP + ":" + strconv.FormatUint(uint64(global.Config.Service.HTTP.SSLPort), 10),
+			Handler:           httpHandler,
 		}
 		log.Info().Str("Addr", httpsService.Addr).Msg("启用 HTTPS")
 		if err = httpsService.ListenAndServeTLS(global.Config.Service.HTTP.CertFile, global.Config.Service.HTTP.KeyFile); err != nil {
