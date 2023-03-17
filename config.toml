@@ -5,7 +5,7 @@ ip=""
 
 # 内部域名后缀，例如*.test则填写.test
 # 如果留空，则不启用内部域名解析的功能，同时存储器设置也不会生效
-internalSuffix=[".uam"]
+internalSuffix=[".test"]
 
 # 退出等待时间
 quitWaitTimeout=5
@@ -67,8 +67,8 @@ jsonQueryPath = "/resolve"
 # HTTP JSON 查询是否需要验证密钥
 jsonQueryAuth = false
 
-# HTTP API 注册域名路径，留空则不启用本功能
-registerPath = "/register"
+# HTTP API 设置域名路径，留空则不启用本功能
+registerPath = "/set"
 # HTTP API 注册域名是否需要验证密钥
 registerAuth = true
 
@@ -119,5 +119,5 @@ output=""
 # 在控制台输出时不使用颜色
 # noColor=false
 
-# 日志文件的权限，默认：0600
-# fileMode=0600
+# 日志文件的权限，默认：0644
+# fileMode=0644
