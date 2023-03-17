@@ -8,8 +8,8 @@ import (
 
 	"local/global"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/miekg/dns"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
 
