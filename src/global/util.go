@@ -1,7 +1,7 @@
 package global
 
 import (
-	"crypto/md5" // nolint:gosec
+	"crypto/md5" //nolint:gosec
 	"encoding/hex"
 	"strings"
 	"unsafe"
