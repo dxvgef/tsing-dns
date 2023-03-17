@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -29,10 +29,10 @@ func (hh HTTPHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			break
 		}
 		if req.Method == http.MethodGet {
-			hh.dnsQueryByGET()
+			hh.dnsQueryByGET() //nolint:contextcheck
 			break
 		} else if req.Method == http.MethodPost {
-			hh.dnsQueryByPOST()
+			hh.dnsQueryByPOST() //nolint:contextcheck
 			break
 		}
 		hh.respStatus(http.StatusMethodNotAllowed, "")
@@ -44,7 +44,7 @@ func (hh HTTPHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			hh.respStatus(http.StatusMethodNotAllowed, "")
 			break
 		}
-		hh.jsonQueryHandler()
+		hh.jsonQueryHandler() //nolint:contextcheck
 	case global.Config.Service.HTTP.RegisterPath:
 		if global.Config.Service.HTTP.RegisterPath == "" {
 			break
@@ -196,7 +196,7 @@ func (hh *HTTPHandler) dnsQueryByPOST() {
 		}
 	}()
 
-	body, err = ioutil.ReadAll(hh.req.Body)
+	body, err = io.ReadAll(hh.req.Body)
 	if err != nil {
 		hh.respStatus(http.StatusBadRequest, "Invalid HTTP body data")
 		return
