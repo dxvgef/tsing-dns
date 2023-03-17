@@ -10,6 +10,7 @@ import (
 
 	"local/global"
 
+	_ "github.com/VoltDB/voltdb-client-go/voltdbclient"
 	"github.com/miekg/dns"
 	"github.com/rs/zerolog/log"
 )

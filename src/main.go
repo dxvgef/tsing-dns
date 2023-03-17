@@ -3,8 +3,6 @@ package main
 import (
 	"local/global"
 	"local/service"
-
-	_ "github.com/VoltDB/voltdb-client-go/voltdbclient"
 )
 
 func main() {
